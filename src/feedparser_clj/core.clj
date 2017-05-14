@@ -122,3 +122,34 @@
 
   ([feedsource content-type]
      (parse-internal (new XmlReader ^InputStream feedsource true content-type))))
+
+(defn- configure-connection-with-request-property
+       "Add request property to existing URLConnection"
+       [url-connection [property-name property-value]]
+       (do
+         (.setRequestProperty url-connection (name property-name) property-value)
+         url-connection))
+
+(defn- configure-connection-with-request-properties
+       "Add request properties to existing URLConnection"
+       [url-connection request-properties]
+       (loop [url-connection url-connection
+              request-properties request-properties]
+             (if (empty? request-properties)
+               url-connection
+               (let [request-property-tuple (first request-properties)
+                     request-property-name (first request-property-tuple)
+                     new-connection (configure-connection-with-request-property url-connection request-property-tuple)]
+                    (recur new-connection (dissoc request-properties request-property-name))))))
+
+(defn parse-feed-with-request-properties
+      "Get and parse a feed from a URL, custom request properties (as map)"
+      [feed-url request-properties]
+      (let [url (cond
+                  (string? feed-url) (URL. feed-url)
+                  (instance? URL feed-url) feed-url
+                  :else (throw (ex-info "Unsupported url" {:source feed-url
+                                                           :type (type feed-url)})))
+            connection (.openConnection url)
+            configured-connection (configure-connection-with-request-properties connection request-properties)]
+           (parse-feed configured-connection)))
