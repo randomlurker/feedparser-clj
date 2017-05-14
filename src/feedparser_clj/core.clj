@@ -1,6 +1,6 @@
 (ns feedparser-clj.core
   (:import (com.rometools.rome.io SyndFeedInput XmlReader WireFeedInput)
-           (java.net URL)
+           (java.net URL URLConnection)
            (java.io Reader InputStream File)
            (com.rometools.rome.feed.synd SyndFeedImpl SyndFeed SyndEntry SyndImage SyndPerson SyndCategory SyndLink SyndContent SyndEnclosure)
            (javax.xml XMLConstants)))
@@ -110,13 +110,15 @@
         syndfeed (.build feedinput xmlreader)]
     (make-feed syndfeed)))
 
-(defn parse-feed "Get and parse a feed from a URL"
+(defn parse-feed "Get and parse a feed from a source"
   ([feedsource]
      (parse-internal (cond
                        (string? feedsource) (XmlReader. (URL. feedsource))
                        (instance? InputStream feedsource) (XmlReader. ^InputStream feedsource)
                        (instance? File feedsource) (XmlReader. ^File feedsource)
+                       (instance? URLConnection feedsource) (XmlReader. ^URLConnection feedsource)
                        :else (throw (ex-info "Unsupported source" {:source feedsource
                                                                    :type (type feedsource)})))))
+
   ([feedsource content-type]
      (parse-internal (new XmlReader ^InputStream feedsource true content-type))))
